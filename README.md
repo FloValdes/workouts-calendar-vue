@@ -1,4 +1,6 @@
-# vue-calendar
+# Workout Calendar
+
+Workout calendar made with Vue, Vuetify and vue-chart.js.  
 
 ## Project setup
 ```
