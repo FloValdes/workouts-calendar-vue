@@ -260,7 +260,7 @@
           } else if (this.workoutType == "Youtube") {
             this.color = '#B9B02F';
             const videoId = this.url.split('=')[1];
-            const { data } = await axios.get(`https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=AIzaSyBftGZlGOjzymXbxkHk2grqvChP7TcXcwY&part=snippet,contentDetails`);
+            const { data } = await axios.get(`https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=GOOGLEAPIKEY&part=snippet,contentDetails`);
             this.name = data.items[0].snippet.title;
             const duration = data.items[0].contentDetails.duration;
             if (duration.includes('H')) {
