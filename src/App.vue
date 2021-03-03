@@ -104,7 +104,7 @@ export default {
       const binRange = {'<15': [-1, 15], '15-30': [15, 30], '30-45': [30, 45], '45-60': [45, 60], '60<': [60, Infinity]}
       const durationCount = [];
       this.durations.forEach((duration) => {
-        durationCount.push(this.events.filter(c => Number(c.duration.split(' ')[0]) >= binRange[duration][0] && Number(c.duration.split(' ')[0]) < binRange[duration][1]).length)
+        durationCount.push(this.events.filter(c => c.duration >= binRange[duration][0] && c.duration < binRange[duration][1]).length)
       })
       const newDataDuration = {
         labels: this.durations,

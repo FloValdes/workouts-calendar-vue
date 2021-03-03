@@ -88,12 +88,12 @@
           <v-container>
             <v-form @submit.prevent="addEvent">
               <v-select v-model="workoutType" :items="workoutTypes" label="Workout Type"></v-select>
-              <v-text-field v-if="workoutType == 'Fitness Blender'" v-model="url" :rules="nameRules" type="text" label="URL"></v-text-field>
+              <v-text-field v-if="workoutType == 'Fitness Blender' || workoutType == 'Youtube'" v-model="url" :rules="nameRules" type="text" label="URL"></v-text-field>
               <v-text-field v-if="workoutType == 'Custom'" v-model="name" :rules="nameRules" type="text" label="Workout Name"></v-text-field>
-              <v-text-field v-if="workoutType == 'Custom'" v-model="bodyFocus" type="text" label="Body Focus"></v-text-field>
+              <v-text-field v-if="workoutType == 'Custom' || workoutType == 'Youtube'" v-model="bodyFocus" type="text" label="Body Focus"></v-text-field>
               <v-text-field v-if="workoutType == 'Custom'" v-model="duration" type="number" label="Duration"></v-text-field>
-              <v-text-field v-if="workoutType == 'Custom'" v-model="difficulty" type="number" label="Difficulty" min="1" max="5"></v-text-field>
-              <v-text-field v-if="workoutType == 'Custom'" v-model="trainingType" type="text" label="Training Type"></v-text-field>
+              <v-text-field v-if="workoutType == 'Custom' || workoutType == 'Youtube'" v-model="difficulty" type="number" label="Difficulty" min="1" max="5"></v-text-field>
+              <v-text-field v-if="workoutType == 'Custom' || workoutType == 'Youtube'" v-model="trainingType" type="text" label="Training Type"></v-text-field>
               <v-checkbox v-model="addHour" label="Add hour"></v-checkbox>
               <v-text-field v-if="addHour" v-model="start" :rules="startRules" type="datetime-local" label="Date" required></v-text-field>
               <v-text-field v-else v-model="start" :rules="startRules" type="date" label="Date" required></v-text-field>
@@ -250,7 +250,7 @@
             const $ =  cheerio.load(data);
             const details = $('.detail-value').toArray().map((x) => { return $(x).text()});
             this.bodyFocus = $('.focus.demi').text();
-            this.duration = details[0];
+            this.duration = Number(details[0].split(' ')[0]);
             this.difficulty = details[2];
             this.trainingType = details[4];
             this.name = $('.heading.-large').text();
@@ -259,6 +259,22 @@
             this.color = '#E68BF4';
           } else if (this.workoutType == "Youtube") {
             this.color = '#B9B02F';
+            const videoId = this.url.split('=')[1];
+            const { data } = await axios.get(`https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=AIzaSyBftGZlGOjzymXbxkHk2grqvChP7TcXcwY&part=snippet,contentDetails`);
+            this.name = data.items[0].snippet.title;
+            const duration = data.items[0].contentDetails.duration;
+            if (duration.includes('H')) {
+              console.log('error1');
+              const hours = duration.split('T')[1].split('H')[0];
+              console.log('error2');
+              const minutes = duration.split('H')[1].split('M')[0];
+              console.log('error3');
+              this.duration = Number(hours) * 60 + Number(minutes);
+            } else {
+              console.log('a');
+              this.duration = Number(duration.split('T')[1].split('M')[0]);
+              console.log('b');
+            }
           }
 
           await db.collection('calEvent').add({
@@ -312,7 +328,6 @@
       },
 
       prev () {
-        console.log(this.$refs);
         this.$refs.calendar.prev();
       },
 
