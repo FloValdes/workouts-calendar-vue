@@ -62,7 +62,7 @@
               <v-text-field v-if="workoutType == 'Custom'" v-model="duration" type="number" label="Duration"></v-text-field>
               <v-text-field v-if="workoutType == 'Custom' || workoutType == 'Youtube'" v-model="difficulty" type="number" label="Difficulty" min="1" max="5"></v-text-field>
               <v-select v-model="trainingType" @change="getSecondaryOptions" :items="trainingTypes" :menu-props="{ maxHeight: '400' }" label="Main Training Types" multiple ></v-select>              
-              <v-select v-model="secondaryTrainingType" :items="currentSecondaryOptions" :menu-props="{ maxHeight: '400' }" label="Secondaray Training Types" multiple ></v-select>              
+              <v-select v-model="secondaryTrainingType" :items="currentSecondaryOptions" :menu-props="{ maxHeight: '400' }" label="Secondary Training Types" multiple ></v-select>              
               <v-checkbox v-model="addHour" label="Add hour"></v-checkbox>
               <v-text-field v-if="addHour" v-model="start" :rules="startRules" type="datetime-local" label="Date" required></v-text-field>
               <v-text-field v-else v-model="start" :rules="startRules" type="date" label="Date" required></v-text-field>
@@ -110,7 +110,7 @@
         >
           <v-card
             color="grey lighten-4"
-            min-width="350px"
+            min-width="400px"
             flat
           >
             <v-toolbar
@@ -272,7 +272,7 @@
             const details = $('.detail-value').toArray().map((x) => { return $(x).text()});
             this.bodyFocus = $('.focus.demi').text();
             this.duration = Number(details[0].split(' ')[0]);
-            this.difficulty = details[2];
+            this.difficulty = details[2][0];
             // this.trainingType = details[4];
             this.name = $('.heading.-large').text();
             this.color = '#16e0cf';
@@ -298,17 +298,32 @@
           this.trainingType = this.trainingType.join(', ');
           this.secondaryTrainingType = this.secondaryTrainingType.join(', ');
 
-          await db.collection('calEvent').add({
-            name: this.name,
-            bodyFocus: this.bodyFocus,
-            duration: this.duration,
-            difficulty: this.difficulty,
-            trainingType: this.trainingType,
-            secondaryTrainingType: this.secondaryTrainingType,
-            start: this.start,
-            color: this.color,
-            favorite: false,
-          });
+          if (this.url) {
+            await db.collection('calEvent').add({
+              name: this.name,
+              bodyFocus: this.bodyFocus,
+              duration: this.duration,
+              difficulty: this.difficulty,
+              trainingType: this.trainingType,
+              secondaryTrainingType: this.secondaryTrainingType,
+              start: this.start,
+              color: this.color,
+              favorite: false,
+              url: this.url,
+            });
+          } else {
+            await db.collection('calEvent').add({
+              name: this.name,
+              bodyFocus: this.bodyFocus,
+              duration: this.duration,
+              difficulty: this.difficulty,
+              trainingType: this.trainingType,
+              secondaryTrainingType: this.secondaryTrainingType,
+              start: this.start,
+              color: this.color,
+              favorite: false,
+            });
+          }
 
           this.getEvents();
           this.name = null;
