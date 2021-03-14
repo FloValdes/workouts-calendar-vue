@@ -47,38 +47,6 @@
             {{ $refs.calendar.title }}
           </v-toolbar-title>
           <v-spacer></v-spacer>
-          <!-- <v-menu
-            bottom
-            right
-          >
-            <template v-slot:activator="{ on, attrs }">
-              <v-btn
-                outlined
-                color="grey darken-2"
-                v-bind="attrs"
-                v-on="on"
-              >
-                <span>{{ typeToLabel[type] }}</span>
-                <v-icon right>
-                  mdi-menu-down
-                </v-icon>
-              </v-btn>
-            </template>
-            <v-list>
-              <v-list-item @click="type = 'day'">
-                <v-list-item-title>Day</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="type = 'week'">
-                <v-list-item-title>Week</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="type = 'month'">
-                <v-list-item-title>Month</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="type = '4day'">
-                <v-list-item-title>4 days</v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-menu> -->
         </v-toolbar>
       </v-sheet>
 
@@ -90,14 +58,28 @@
               <v-select v-model="workoutType" :items="workoutTypes" label="Workout Type"></v-select>
               <v-text-field v-if="workoutType == 'Fitness Blender' || workoutType == 'Youtube'" v-model="url" :rules="nameRules" type="text" label="URL"></v-text-field>
               <v-text-field v-if="workoutType == 'Custom'" v-model="name" :rules="nameRules" type="text" label="Workout Name"></v-text-field>
-              <v-text-field v-if="workoutType == 'Custom' || workoutType == 'Youtube'" v-model="bodyFocus" type="text" label="Body Focus"></v-text-field>
+              <v-select v-if="workoutType == 'Custom' || workoutType == 'Youtube'" v-model="bodyFocus" :items="bodyParts" :menu-props="{ maxHeight: '400' }" label="Body Focus" multiple ></v-select>
               <v-text-field v-if="workoutType == 'Custom'" v-model="duration" type="number" label="Duration"></v-text-field>
               <v-text-field v-if="workoutType == 'Custom' || workoutType == 'Youtube'" v-model="difficulty" type="number" label="Difficulty" min="1" max="5"></v-text-field>
-              <v-text-field v-if="workoutType == 'Custom' || workoutType == 'Youtube'" v-model="trainingType" type="text" label="Training Type"></v-text-field>
+              <v-select v-model="trainingType" @change="getSecondaryOptions" :items="trainingTypes" :menu-props="{ maxHeight: '400' }" label="Main Training Types" multiple ></v-select>              
+              <v-select v-model="secondaryTrainingType" :items="currentSecondaryOptions" :menu-props="{ maxHeight: '400' }" label="Secondary Training Types" multiple ></v-select>              
               <v-checkbox v-model="addHour" label="Add hour"></v-checkbox>
               <v-text-field v-if="addHour" v-model="start" :rules="startRules" type="datetime-local" label="Date" required></v-text-field>
               <v-text-field v-else v-model="start" :rules="startRules" type="date" label="Date" required></v-text-field>
               <v-btn type="submit" color="primary" class="mr-4" @click.stop="dialog=false">Create Event</v-btn>
+            </v-form>
+          </v-container>
+        </v-card>
+      </v-dialog>
+
+      <v-dialog v-model="signUpDialog" max-width="500">
+        <v-card>
+          <v-container>
+            <div class='text-h4 mb-4'>Log In</div>
+            <v-form @submit.prevent="signUp">
+              <v-text-field v-model="email" label="Email"></v-text-field>
+              <v-text-field v-model="password" label="Password" type='password'></v-text-field>
+              <v-btn type="submit" color="primary" class="mr-4" @click.stop="signUpDialog=false">Log In</v-btn>
             </v-form>
           </v-container>
         </v-card>
@@ -128,7 +110,7 @@
         >
           <v-card
             color="grey lighten-4"
-            min-width="350px"
+            min-width="400px"
             flat
           >
             <v-toolbar
@@ -140,19 +122,50 @@
               </v-btn>
               <v-toolbar-title v-html="selectedEvent.name"></v-toolbar-title>
               <v-spacer></v-spacer>
+              <v-btn v-if="selectedEvent.favorite === true" @click="changeFavoriteEvent" icon>
+                <v-icon>mdi-heart-remove</v-icon>
+              </v-btn>
+              <v-btn v-else @click="changeFavoriteEvent" icon>
+                <v-icon>mdi-heart-plus-outline</v-icon>
+              </v-btn>
             </v-toolbar>
-            <v-card-text>
-              <form v-if="currentlyEditing !== selectedEvent.id">
-                Body Focus: {{selectedEvent.bodyFocus}} <br>
-                Duration: {{selectedEvent.duration}} <br>
-                Difficulty: {{selectedEvent.difficulty}} <br>
-                Training Type: {{selectedEvent.trainingType}}
-              </form>
+            <!-- <v-card-text> -->
+              <v-container no-gutters v-if="currentlyEditing !== selectedEvent.id">
+                <v-row no-gutters>
+                  <v-col cols="7" style='font-size: 13px'>
+                    <b>Body Focus:</b> {{selectedEvent.bodyFocus}} <br>
+                    <b>Duration:</b> {{selectedEvent.duration}} <br>
+                    <b>Difficulty:</b> {{selectedEvent.difficulty}} <br>
+                    <b>Training Type:</b> {{selectedEvent.trainingType}}<br>
+                    <b>Secondary Training Types:</b> {{selectedEvent.secondaryTrainingType}}
+                  </v-col> 
+                  <v-col cols='1'>
+                    <v-divider
+                    vertical
+                    ></v-divider>
+                  </v-col> 
+                  <v-col cols="4" style='text-align: center'>
+                    <b style='font-size: 13px'>Soreness and exhaustion:</b>
+                    <v-rating
+                      color="red"
+                      background-color="grey"
+                      empty-icon="mdi-fire"
+                      full-icon="mdi-fire"
+                      hover
+                      length="3"
+                      size="30"
+                      v-model="selectedEvent.soreLevel"
+                      style='text-align: center'
+                      @input='ratingChange'
+                    ></v-rating>
+                  </v-col>
+                </v-row>
+              </v-container>
               <form v-else>
                 <textarea-autosize v-model="selectedEvent.details" type="text" style="width: 100%" :min-height="100" placeholder="add notes">
                 </textarea-autosize>
               </form>
-            </v-card-text>
+            <!-- </v-card-text> -->
             <v-card-actions>
               <v-btn
                 text
@@ -187,6 +200,7 @@
   import { db } from '@/main';
   import axios from 'axios';
   import cheerio from 'cheerio';
+  import firebase from 'firebase';
 
   export default {
     props: ['events'],
@@ -206,6 +220,7 @@
       duration: null,
       difficulty: null,
       trainingType: null,
+      secondaryTrainingType: null,
       start: null,
       url: null,
       color: "#1976D2",
@@ -224,11 +239,17 @@
       ],
       addHour: false,
       workoutType: 'Fitness Blender',
-      workoutTypes: ['Fitness Blender', 'Youtube', 'Custom']
+      workoutTypes: ['Fitness Blender', 'Youtube', 'Custom'],
+      bodyParts: ['Core', 'Lower Body', 'Total Body', 'Upper Body'],
+      trainingTypes: ['Cardiovascular', 'Strength Training', 'Flexibility / Mobility'],
+      secondaryTrainingTypes: {'Cardiovascular': ['Long Cardio', 'HIIT', 'Kickboxing'], 'Strength Training': ['High Reps Low Weights', 'Low Reps High Weights', 'Bodyweight'], 'Flexibility / Mobility': ['Yoga', 'Stretching', 'Pilates', 'Walking']},
+      currentSecondaryOptions: [],
+      signUpDialog: true,
+      email: '',
+      password: ''
     }),
 
     mounted () {
-      // this.getEvents();
     },
     methods: {
       async getEvents() {
@@ -251,41 +272,58 @@
             const details = $('.detail-value').toArray().map((x) => { return $(x).text()});
             this.bodyFocus = $('.focus.demi').text();
             this.duration = Number(details[0].split(' ')[0]);
-            this.difficulty = details[2];
-            this.trainingType = details[4];
+            this.difficulty = details[2][0];
+            // this.trainingType = details[4];
             this.name = $('.heading.-large').text();
             this.color = '#16e0cf';
           } else if (this.workoutType == "Custom") {
             this.color = '#E68BF4';
+            this.bodyFocus = this.bodyFocus.join(', ');
           } else if (this.workoutType == "Youtube") {
             this.color = '#B9B02F';
+            this.bodyFocus = this.bodyFocus.join(', ');
             const videoId = this.url.split('=')[1];
-            const { data } = await axios.get(`https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=GOOGLEAPIKEY&part=snippet,contentDetails`);
+            const { data } = await axios.get(`https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=AIzaSyBftGZlGOjzymXbxkHk2grqvChP7TcXcwY&part=snippet,contentDetails`);
             this.name = data.items[0].snippet.title;
             const duration = data.items[0].contentDetails.duration;
             if (duration.includes('H')) {
-              console.log('error1');
               const hours = duration.split('T')[1].split('H')[0];
-              console.log('error2');
               const minutes = duration.split('H')[1].split('M')[0];
-              console.log('error3');
               this.duration = Number(hours) * 60 + Number(minutes);
             } else {
-              console.log('a');
               this.duration = Number(duration.split('T')[1].split('M')[0]);
-              console.log('b');
             }
           }
 
-          await db.collection('calEvent').add({
-            name: this.name,
-            bodyFocus: this.bodyFocus,
-            duration: this.duration,
-            difficulty: this.difficulty,
-            trainingType: this.trainingType,
-            start: this.start,
-            color: this.color
-          });
+          this.trainingType = this.trainingType.join(', ');
+          this.secondaryTrainingType = this.secondaryTrainingType.join(', ');
+
+          if (this.url) {
+            await db.collection('calEvent').add({
+              name: this.name,
+              bodyFocus: this.bodyFocus,
+              duration: this.duration,
+              difficulty: this.difficulty,
+              trainingType: this.trainingType,
+              secondaryTrainingType: this.secondaryTrainingType,
+              start: this.start,
+              color: this.color,
+              favorite: false,
+              url: this.url,
+            });
+          } else {
+            await db.collection('calEvent').add({
+              name: this.name,
+              bodyFocus: this.bodyFocus,
+              duration: this.duration,
+              difficulty: this.difficulty,
+              trainingType: this.trainingType,
+              secondaryTrainingType: this.secondaryTrainingType,
+              start: this.start,
+              color: this.color,
+              favorite: false,
+            });
+          }
 
           this.getEvents();
           this.name = null;
@@ -294,6 +332,8 @@
           this.duration = null;
           this.start = null;
           this.end = null;
+          this.trainingType = null;
+          this.secondaryTrainingType = null;
           this.color = "#1976D2";
         } else {
           alert('Date is required');
@@ -304,14 +344,39 @@
         await db.collection('calEvent').doc(this.currentlyEditing).update({
           details: e.details
         });
-        this.selectedOpen = false;
         this.currentlyEditing = null;
+      },
+
+      async changeFavoriteEvent() {
+        await db.collection('calEvent').doc(this.selectedEvent.id).update({
+          favorite: !this.selectedEvent.favorite
+        });
+        this.selectedEvent.favorite = !this.selectedEvent.favorite;
+      },
+
+      async ratingChange(newRating) {
+        await db.collection('calEvent').doc(this.selectedEvent.id).update({
+          soreLevel: newRating
+        });
+        this.selectedEvent.soreLevel = newRating;
       },
 
       async deleteEvent(e) {
         await db.collection('calEvent').doc(e).delete();
         this.selectedOpen = false;
         this.getEvents();
+      },
+
+      async signUp() {
+        const auth = firebase.auth();
+        const promise = auth.signInWithEmailAndPassword(this.email, this.password);
+        promise.catch(e => alert(e.message));
+      },
+
+      getSecondaryOptions() {
+        let sec = [];
+        this.trainingType.forEach(primaryOption => sec = sec.concat(Object.values(this.secondaryTrainingTypes[primaryOption])));
+        this.currentSecondaryOptions = sec;
       },
 
       viewDay ({ date }) {
